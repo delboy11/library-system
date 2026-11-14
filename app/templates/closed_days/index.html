@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "_macros.html" import calendar_month %}
+{% block title %}휴관일{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head__text">
+    <h1>휴관일 관리</h1>
+  </div>
+</div>
+
+{% if session.staff_role == '관리자' %}
+<section>
+  <div class="section__head"><h2>휴관일 등록</h2></div>
+  <form method="post" action="{{ url_for('closed_days.new') }}" class="filters">
+    <label class="field">날짜
+      <input type="date" name="closed_date" required min="{{ today | d }}">
+    </label>
+    <label class="field field--grow">사유
+      <input name="reason" placeholder="임시휴관" maxlength="30">
+    </label>
+    <button class="btn btn--primary">등록</button>
+  </form>
+</section>
+{% endif %}
+
+<form method="get" class="filters {{ 'section' if session.staff_role == '관리자' }}">
+  <label class="field field--xs">연도
+    <input type="number" name="year" value="{{ year }}" min="1900" max="2200" required onchange="this.form.submit()">
+  </label>
+</form>
+
+<div class="cal">
+  {% for m in months %}
+  {{ calendar_month(m, closed, today, session.staff_role == '관리자') }}
+  {% endfor %}
+</div>
+{% endblock %}

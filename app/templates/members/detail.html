@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, loan_rows, suspension_state with context %}
+{% block title %}{{ member.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head__text">
+    <p class="crumb"><a href="{{ url_for('members.list_members') }}">회원</a> ›</p>
+    <h1>{{ member.name }} <span class="mono">{{ member.member_no }}</span> {{ badge(member.loan_state) }}</h1>
+  </div>
+  <div class="btn-row">
+    {% if member.loan_state == '대출가능' %}<a class="btn btn--primary" href="{{ url_for('loans.borrow', member_no=member.member_no) }}">대출하기</a>{% endif %}
+    {% if member.status == '정상' %}
+      <a class="btn btn--secondary" href="{{ url_for('members.edit', member_id=member.member_id) }}">정보 수정</a>
+      <form class="inline" method="post" action="{{ url_for('members.withdraw', member_id=member.member_id) }}"
+            onsubmit="return confirm('탈퇴 처리할까요? 되돌릴 수 없습니다.')">
+        <button class="btn btn--secondary btn--danger">탈퇴 처리</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="figures figures--4">
+  <div class="figure"><span class="figure__label">대출 중</span><span class="figure__value">{{ member.active_loans }}<small>/ {{ member.max_loan_count }}권</small></span></div>
+  <div class="figure {{ 'figure--alert' if member.overdue_loans }}"><span class="figure__label">연체</span><span class="figure__value">{{ member.overdue_loans }}<small>권</small></span></div>
+  <div class="figure {{ 'figure--alert' if member.unpaid_fine }}"><span class="figure__label">미납 연체료</span><span class="figure__value">{{ '{:,}'.format(member.unpaid_fine | int) }}<small>원</small></span></div>
+  <div class="figure {{ 'figure--alert' if member.suspend_until }}"><span class="figure__label">대출정지 종료일</span><span class="figure__value figure__value--text">{{ member.suspend_until | d }}</span></div>
+</div>
+
+<div class="split">
+  <section class="section">
+    <div class="section__head"><h2>회원 정보</h2></div>
+    <dl class="info">
+      <dt>회원구분</dt><dd>{{ member.type_name }} (최대 {{ member.max_loan_count }}권 · {{ member.loan_days }}일 · 연장 {{ member.max_renew }}회)</dd>
+      <dt>소속</dt><dd>{{ member.department or '-' }}</dd>
+      <dt>전화번호</dt><dd>{{ member.phone }}</dd>
+      <dt>이메일</dt><dd>{{ member.email or '-' }}</dd>
+      <dt>가입일</dt><dd>{{ member.join_date | d }}</dd>
+      {% if member.withdraw_date %}<dt>탈퇴일</dt><dd>{{ member.withdraw_date | d }}</dd>{% endif %}
+    </dl>
+  </section>
+
+  <section class="section">
+    <div class="section__head"><h2>대출정지 이력</h2></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>사유</th><th>기간</th><th>상태</th><th></th></tr></thead>
+      <tbody>
+      {% for s in suspensions %}
+        <tr>
+          <td>{{ s.reason }}{% if s.memo %} <span class="muted">{{ s.memo }}</span>{% endif %}</td>
+          <td class="nowrap">{{ s.start_date | d }} ~ {{ s.end_date | d }}</td>
+          <td class="nowrap">{{ suspension_state(s) }}{% if s.released_date %} <span class="muted">{{ s.released_date | d('%m/%d') }} {{ s.released_staff_name }}</span>{% endif %}</td>
+          <td class="actions">{% if not s.released_date and s.end_date >= today %}
+            <form class="inline" method="post" action="{{ url_for('overdue.release', suspension_id=s.suspension_id) }}">
+              <button class="btn btn--secondary btn--sm">해제</button>
+            </form>{% endif %}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="empty">대출정지 이력이 없습니다.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+</div>
+
+<section class="section">
+  <div class="section__head"><h2>대출 중인 도서</h2></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>등록번호</th><th>도서</th><th>대출일</th><th>반납예정일</th><th>상태</th><th></th></tr></thead>
+    <tbody>{{ loan_rows(active_loans, show_member=false) }}</tbody>
+  </table></div>
+</section>
+
+<section class="section">
+  <div class="section__head"><h2>연체료</h2></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>도서</th><th class="num">연체</th><th class="num">금액</th><th>상태</th><th></th></tr></thead>
+    <tbody>
+    {% for f in fines %}
+      <tr>
+        <td>{{ f.title }}</td>
+        <td class="num">{{ f.overdue_days }}일</td>
+        <td class="num">{{ f.amount | won }}</td>
+        <td>{{ badge(f.status) }}</td>
+        <td class="actions">{% if f.status == '미납' %}
+          <form class="inline" method="post" action="{{ url_for('overdue.pay', fine_id=f.fine_id) }}">
+            <button class="btn btn--secondary btn--sm">납부</button>
+          </form>{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="empty">연체료 내역이 없습니다.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+<section class="section">
+  <div class="section__head"><h2>최근 대출 이력 <span class="h-meta">최근 20건</span></h2></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>등록번호</th><th>도서</th><th>대출일</th><th>반납예정일</th><th>상태</th></tr></thead>
+    <tbody>{{ loan_rows(history, show_member=false, show_actions=false) }}</tbody>
+  </table></div>
+</section>
+{% endblock %}

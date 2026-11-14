@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros.html" import loan_rows %}
+{% block title %}대출현황{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head__text"><h1>대출 내역 조회</h1></div>
+</div>
+
+<nav class="tabs" aria-label="대출 상태">
+  {% for key, label in [('active', '대출 중'), ('overdue', '연체'), ('returned', '반납 완료'), ('all', '전체')] %}
+    <a class="tab" href="{{ url_for('loans.list_loans', state=key, q=q) }}"{% if state == key %} aria-current="true"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</nav>
+
+<form class="filters" method="get">
+  <input type="hidden" name="state" value="{{ state }}">
+  <label class="field field--grow">검색
+    <input type="search" name="q" value="{{ q }}" placeholder="회원명 · 학번 · 서명 · 등록번호">
+  </label>
+  <button class="btn btn--secondary">검색</button>
+  <span class="filters__count">{{ loans | length }}건</span>
+</form>
+
+<div class="table-wrap"><table>
+  <thead><tr><th>등록번호</th><th>도서</th><th>회원</th><th>대출일</th><th>반납예정일</th><th>상태</th><th></th></tr></thead>
+  <tbody>{{ loan_rows(loans) }}</tbody>
+</table></div>
+{% endblock %}

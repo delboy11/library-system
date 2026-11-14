@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  {% set is_portal = request.blueprint == 'portal' %}
+  <title>{% block title %}{% endblock %} · {{ '도서관 회원 서비스' if is_portal else '도서관 관리 시스템' }}</title>
+  <meta name="description" content="{{ '도서관 회원이 대출 현황을 확인하고 연장을 신청하는 화면' if is_portal else '대출·반납을 처리하고 연체·대출정지를 관리하는 사서용 프로그램' }}">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M2.5 21.5V12a9.5 9.5 0 0 1 19 0v9.5h-6V12a3.5 3.5 0 0 0-7 0v9.5z'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=asset_v) }}">
+</head>
+<body>
+{% if is_portal %}
+  {% if session.member_id %}
+    <header class="nav">
+      <div class="wrap nav__bar">
+        <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+        <a class="nav__logo" href="{{ url_for('portal.index') }}">도서관 회원 서비스</a>
+        <nav class="nav__links" aria-label="주 메뉴">
+          {% for endpoint, label in [('portal.index', '내 도서관'), ('portal.books', '도서 검색'), ('portal.password', '비밀번호 변경')] %}
+            {% set current = request.endpoint == endpoint or (endpoint == 'portal.books' and request.endpoint == 'portal.book_detail') %}
+            <a class="nav__link" href="{{ url_for(endpoint) }}"{% if current %} aria-current="page"{% endif %}>{{ label }}</a>
+          {% endfor %}
+        </nav>
+        <div class="nav__user"><span>{{ session.member_name }} ({{ session.member_no }})</span><a class="nav__link" href="{{ url_for('portal.logout') }}">로그아웃</a></div>
+      </div>
+    </header>
+  {% endif %}
+{% elif session.staff_id %}
+  {# 메뉴 10개를 일의 묶음으로 나눈다 : 현황 / 대출 데스크 / 자료·회원 / 연체 / 설정·통계 #}
+  {% set nav = [
+    [('main.index', '대시보드', 'main')],
+    [('loans.borrow', '대출', 'loans.borrow'), ('loans.return_book', '반납', 'loans.return_book'), ('loans.list_loans', '대출현황', 'loans.list_loans')],
+    [('books.list_books', '도서', 'books'), ('members.list_members', '회원', 'members')],
+    [('overdue.index', '연체·정지', 'overdue.index'), ('overdue.fines', '연체료', 'overdue.fines')],
+    [('closed_days.index', '휴관일', 'closed_days'), ('stats.index', '통계', 'stats')],
+  ] %}
+  <header class="nav">
+    <div class="wrap nav__bar">
+      <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+      <a class="nav__logo" href="{{ url_for('main.index') }}">도서관 관리 시스템</a>
+      <nav class="nav__links" aria-label="주 메뉴">
+        {% for group in nav %}
+          {% if not loop.first %}<span class="nav__sep" aria-hidden="true"></span>{% endif %}
+          {% for endpoint, label, key in group %}
+            <a class="nav__link" href="{{ url_for(endpoint) }}"{% if request.endpoint == key or request.blueprint == key %} aria-current="page"{% endif %}>{{ label }}</a>
+          {% endfor %}
+        {% endfor %}
+      </nav>
+      <div class="nav__user"><span>{{ session.staff_name }} ({{ session.staff_role }})</span><a class="nav__link" href="{{ url_for('auth.logout') }}">로그아웃</a></div>
+    </div>
+  </header>
+{% endif %}
+<main id="main" class="wrap page">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}" role="status">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

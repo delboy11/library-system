@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, loan_rows %}
+{% block title %}대출{% endblock %}
+{% block content %}
+<form method="get" class="desk">
+  <label class="field">학번 · 교번
+    <input name="member_no" value="{{ member_no }}" placeholder="20231234" {{ 'autofocus' if not member }} required>
+  </label>
+  <button class="btn btn--xl {{ 'btn--secondary' if member else 'btn--primary' }}">회원 조회</button>
+</form>
+
+{% if member %}
+  {% set reasons = [] %}
+  {% if member.status == '탈퇴' %}{% do reasons.append('탈퇴한 회원') %}{% endif %}
+  {% if member.suspend_until %}{% do reasons.append(member.suspend_until.strftime('%Y-%m-%d') ~ '까지 대출정지') %}{% endif %}
+  {% if member.overdue_loans %}{% do reasons.append('연체 도서 ' ~ member.overdue_loans ~ '권 반납 필요') %}{% endif %}
+  {% if member.unpaid_fine %}{% do reasons.append('미납 연체료 ' ~ '{:,}'.format(member.unpaid_fine | int) ~ '원 납부 필요') %}{% endif %}
+  {% if member.active_loans >= member.max_loan_count %}{% do reasons.append('대출 한도 도달') %}{% endif %}
+  <div class="split section">
+    <div class="panel">
+      <h2 class="panel__title"><span>{{ member.name }} <span class="h-meta"><span class="mono">{{ member.member_no }}</span> · {{ member.type_name }}</span></span> {{ badge(member.loan_state) }}</h2>
+      <dl class="info">
+        <dt>대출 중</dt><dd>{{ member.active_loans }} / {{ member.max_loan_count }}권 (대출기간 {{ member.loan_days }}일)</dd>
+        <dt>연체</dt><dd>{% if member.overdue_loans %}<span class="text-danger">{{ member.overdue_loans }}권</span>{% else %}없음{% endif %}</dd>
+        <dt>미납 연체료</dt><dd>{% if member.unpaid_fine %}<span class="text-danger">{{ member.unpaid_fine | won }}</span>{% else %}없음{% endif %}</dd>
+        <dt>대출정지</dt><dd>{% if member.suspend_until %}<span class="text-danger">{{ member.suspend_until | d }}까지</span>{% else %}없음{% endif %}</dd>
+      </dl>
+    </div>
+    <div class="panel">
+      {% if reasons %}
+        <div class="notice notice--danger">
+          대출 불가: {{ reasons | join(' · ') }}
+        </div>
+      {% endif %}
+      <form method="post" class="desk">
+        <input type="hidden" name="member_no" value="{{ member.member_no }}">
+        <label class="field">복본 등록번호
+          <input name="reg_no" placeholder="EM000001" autofocus required>
+        </label>
+        <button class="btn btn--primary btn--xl">대출</button>
+      </form>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="section__head"><h2>현재 대출 중인 도서</h2></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>등록번호</th><th>도서</th><th>대출일</th><th>반납예정일</th><th>상태</th><th></th></tr></thead>
+      <tbody>{{ loan_rows(active_loans, show_member=false) }}</tbody>
+    </table></div>
+  </section>
+{% endif %}
+{% endblock %}

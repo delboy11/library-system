@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}{{ '도서 등록' if is_new else '도서 수정' }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head__text">
+    <p class="crumb"><a href="{{ url_for('books.list_books') }}">도서</a> ›</p>
+    <h1>{{ '도서 등록' if is_new else '도서 정보 수정' }}</h1>
+  </div>
+</div>
+
+{% if is_new %}
+<section class="panel">
+  <h2>국립중앙도서관에서 불러오기</h2>
+  <form method="get" class="filters">
+    <label class="field field--grow">ISBN
+      <input name="lookup" placeholder="ISBN 13자리" value="{{ values.isbn or '' }}" inputmode="numeric">
+    </label>
+    <button class="btn btn--secondary" {% if not api_enabled %}disabled title="NL_CERT_KEY 설정 필요"{% endif %}>ISBN 조회</button>
+  </form>
+</section>
+{% endif %}
+
+<form method="post" class="form section">
+  <label class="field">ISBN (13자리)
+    <input name="isbn" value="{{ values.isbn or '' }}" required maxlength="17" placeholder="9788936434120" inputmode="numeric"
+           {{ 'readonly' if not is_new }}>
+  </label>
+  <label class="field">서명
+    <input name="title" value="{{ values.title or '' }}" required maxlength="200">
+  </label>
+  <label class="field">지은이
+    <input name="writers" value="{{ values.writers or '' }}" placeholder="홍길동, 김철수 (엮은이)" required>
+  </label>
+  <label class="field">옮긴이
+    <input name="translators" value="{{ values.translators or '' }}">
+  </label>
+  <label class="field">출판사
+    <input name="publisher_name" value="{{ values.publisher_name or '' }}" required maxlength="50">
+  </label>
+  <label class="field">분류 (KDC 주류)
+    <select name="category_code">
+      {% for c in categories %}
+        <option value="{{ c.category_code }}" {{ 'selected' if c.category_code == values.category_code }}>{{ c.category_code }} {{ c.category_name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="field">KDC 분류기호
+    <input name="kdc_no" value="{{ values.kdc_no or '' }}" placeholder="813.7" maxlength="20">
+  </label>
+  <label class="field">발행연도
+    <input name="pub_year" type="number" min="1450" max="2100" value="{{ values.pub_year or '' }}">
+  </label>
+  <label class="field">정가(원)
+    <input name="price" type="number" min="0" step="100" value="{{ values.price or '' }}">
+  </label>
+  {% if is_new %}
+    <label class="field">복본 권수
+      <input name="copy_count" type="number" min="0" max="10" value="{{ values.copy_count }}">
+    </label>
+    <label class="field">배가위치
+      <input name="location" value="{{ values.location }}">
+    </label>
+    <label class="field">청구기호
+      <input name="call_no" value="{{ values.call_no or '' }}" placeholder="813.7-한12ㅅ" maxlength="34">
+    </label>
+  {% endif %}
+  <div class="form__actions">
+    <button class="btn btn--primary">{{ '등록' if is_new else '저장' }}</button>
+    <a class="btn btn--secondary" href="{{ url_for('books.list_books') if is_new else url_for('books.detail', isbn=values.isbn) }}">취소</a>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,82 @@
+{# 상태 표시 : 글자만. danger 는 빨강, off(끝난 상태)는 흐리게, 나머지는 본문색 #}
+{% set STATE = {
+  '대출가능': 'ok', '대출중': 'live', '분실': 'danger', '폐기': 'off',
+  '연체': 'danger', '반납': 'off',
+  '정상': 'ok', '대출정지': 'danger', '탈퇴': 'off',
+  '미납': 'danger', '납부': 'ok', '면제': 'off',
+  '유효': 'danger', '해제': 'off', '만료': 'off', '예정': 'warn', '오늘': 'warn',
+} %}
+
+{% macro badge(status) -%}
+  <span class="state state--{{ STATE.get(status, 'off') }}">{{ status }}</span>
+{%- endmacro %}
+
+{% macro loan_actions(loan) -%}
+  {% if loan.return_date is none %}
+    <span class="row-actions">
+      <form class="inline" method="post" action="{{ url_for('loans.renew', loan_id=loan.loan_id) }}">
+        <button class="btn btn--secondary btn--sm">연장</button>
+      </form>
+      <form class="inline" method="post" action="{{ url_for('loans.report_lost', loan_id=loan.loan_id) }}"
+            onsubmit="return confirm('분실 처리할까요? 대출이 종료되고 복본은 분실 상태가 됩니다.')">
+        <button class="btn btn--secondary btn--sm">분실</button>
+      </form>
+    </span>
+  {% endif %}
+{%- endmacro %}
+
+{% macro loan_rows(loans, show_member=true, show_actions=true) -%}
+  {% for l in loans %}
+    <tr>
+      <td class="mono">{{ l.reg_no }}</td>
+      <td><a href="{{ url_for('books.detail', isbn=l.isbn) }}">{{ l.title }}</a></td>
+      {% if show_member %}
+        <td><a href="{{ url_for('members.detail', member_id=l.member_id) }}">{{ l.member_name }}</a>
+            <span class="muted mono">{{ l.member_no }}</span></td>
+      {% endif %}
+      <td class="nowrap">{{ l.loan_date | d }}</td>
+      <td class="nowrap">{{ l.due_date | d }}{% if l.renew_count %} <span class="muted">(연장 {{ l.renew_count }})</span>{% endif %}</td>
+      <td class="nowrap">{{ badge(l.loan_state) }}{% if l.overdue_days %} <span class="text-danger">{{ l.overdue_days }}일</span>{% endif %}</td>
+      {% if show_actions %}<td class="actions">{{ loan_actions(l) }}</td>{% endif %}
+    </tr>
+  {% else %}
+    <tr><td colspan="7" class="empty">내역이 없습니다.</td></tr>
+  {% endfor %}
+{%- endmacro %}
+
+{% macro suspension_state(s) -%}
+  {% if s.released_date %}{{ badge('해제') }}
+  {% elif s.end_date < today %}{{ badge('만료') }}
+  {% elif s.start_date > today %}{{ badge('예정') }}
+  {% else %}{{ badge('유효') }}{% endif %}
+{%- endmacro %}
+
+{% macro calendar_month(m, closed, today, deletable=false) %}
+  <section class="cal__month">
+    <h3>{{ m.month }}월</h3>
+    <table class="cal__grid">
+      <thead><tr>{% for w in '일월화수목금토' %}<th>{{ w }}</th>{% endfor %}</tr></thead>
+      <tbody>
+      {% for week in m.weeks %}
+        <tr>{% for day in week %}
+          {% if day.month != m.month %}<td></td>
+          {% else %}<td class="{{ 'is-closed' if day in closed }} {{ 'is-today' if day == today }}"{% if day in closed %} title="{{ closed[day] }}"{% endif %}>{{ day.day }}</td>{% endif %}
+        {% endfor %}</tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% if m.extra %}
+    <ul class="cal__list">
+      {% for r in m.extra %}
+      <li>
+        <span><span class="mono">{{ r.closed_date.day }}일</span> {{ r.reason }}</span>
+        {% if deletable and r.closed_date >= today %}
+        <form class="inline" method="post" action="{{ url_for('closed_days.delete', closed_date=r.closed_date | d) }}">
+          <button class="btn btn--secondary btn--sm">삭제</button>
+        </form>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </section>
+{% endmacro %}

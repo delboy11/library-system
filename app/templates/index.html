@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, calendar_month %}
+{% block title %}대시보드{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head__text">
+    <h1>{{ today | d('%Y년 %m월 %d일') }}</h1>
+    <p class="lead">오늘 대출 {{ summary.loans_today }}건 · 반납 {{ summary.returns_today }}건</p>
+  </div>
+  <div class="btn-row">
+    <a class="btn btn--primary" href="{{ url_for('loans.borrow') }}">대출</a>
+    <a class="btn btn--secondary" href="{{ url_for('loans.return_book') }}">반납</a>
+  </div>
+</div>
+
+<div class="figures figures--6">
+  <a class="figure" href="{{ url_for('books.list_books') }}">
+    <span class="figure__label">소장 도서</span>
+    <span class="figure__value">{{ summary.titles }}<small>종</small> {{ summary.copies }}<small>권</small></span>
+  </a>
+  <a class="figure" href="{{ url_for('members.list_members') }}">
+    <span class="figure__label">회원</span>
+    <span class="figure__value">{{ summary.members }}<small>명</small></span>
+  </a>
+  <a class="figure" href="{{ url_for('loans.list_loans') }}">
+    <span class="figure__label">대출 중</span>
+    <span class="figure__value">{{ summary.active_loans }}<small>권</small></span>
+  </a>
+  <a class="figure {{ 'figure--alert' if summary.overdue_loans }}" href="{{ url_for('overdue.index') }}">
+    <span class="figure__label">연체 중</span>
+    <span class="figure__value">{{ summary.overdue_loans }}<small>권</small></span>
+  </a>
+  <a class="figure {{ 'figure--alert' if summary.suspended }}" href="{{ url_for('overdue.index') }}">
+    <span class="figure__label">대출정지 회원</span>
+    <span class="figure__value">{{ summary.suspended }}<small>명</small></span>
+  </a>
+  <a class="figure {{ 'figure--alert' if summary.unpaid_total }}" href="{{ url_for('overdue.fines') }}">
+    <span class="figure__label">미납 연체료</span>
+    <span class="figure__value">{{ '{:,}'.format(summary.unpaid_total | int) }}<small>원</small></span>
+  </a>
+</div>
+
+<div class="split">
+  <section class="section">
+    <div class="section__head"><h2>반납 예정 <span class="h-meta">(오늘 ~ 2일 후)</span></h2></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>도서</th><th>회원</th><th>반납예정일</th></tr></thead>
+      <tbody>
+      {% for l in due_soon %}
+        <tr>
+          <td><a href="{{ url_for('books.detail', isbn=l.isbn) }}">{{ l.title }}</a></td>
+          <td><a href="{{ url_for('members.detail', member_id=l.member_id) }}">{{ l.member_name }}</a></td>
+          <td class="nowrap">{{ l.due_date | d }}{% if l.due_date == today %} {{ badge('오늘') }}{% endif %}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3" class="empty">반납 예정 도서가 없습니다.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="section">
+    <div class="section__head"><h2>연체 도서</h2></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>도서</th><th>회원</th><th>연락처</th><th class="num">연체</th></tr></thead>
+      <tbody>
+      {% for l in overdue %}
+        <tr>
+          <td><a href="{{ url_for('books.detail', isbn=l.isbn) }}">{{ l.title }}</a></td>
+          <td><a href="{{ url_for('members.detail', member_id=l.member_id) }}">{{ l.member_name }}</a></td>
+          <td class="nowrap muted">{{ l.phone }}</td>
+          <td class="num text-danger">{{ l.overdue_days }}일</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="empty">연체 도서가 없습니다.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+</div>
+
+<section class="section">
+  <div class="section__head"><h2>휴관일</h2></div>
+  <div class="cal cal--2">
+    {% for m in months %}{{ calendar_month(m, closed, today) }}{% endfor %}
+  </div>
+</section>
+{% endblock %}

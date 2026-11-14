@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge %}
+{% block title %}{{ book.title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head__text">
+    <p class="crumb"><a href="{{ url_for('books.list_books') }}">도서</a> ›</p>
+    <h1>{{ book.title }}</h1>
+    <p class="lead">{{ book.authors }} · {{ book.publisher_name }} · {{ book.pub_year or '' }}</p>
+  </div>
+  <div class="btn-row">
+    <a class="btn btn--secondary" href="{{ url_for('books.edit', isbn=book.isbn) }}">수정</a>
+    <form class="inline" method="post" action="{{ url_for('books.delete', isbn=book.isbn) }}"
+          onsubmit="return confirm('도서를 삭제할까요? 복본도 함께 삭제됩니다. (대출 이력이 있으면 삭제되지 않습니다)')">
+      <button class="btn btn--secondary btn--danger">삭제</button>
+    </form>
+  </div>
+</div>
+
+<div class="split">
+  <section>
+    <div class="section__head"><h2>서지 정보</h2></div>
+    <dl class="info">
+      <dt>ISBN</dt><dd class="mono">{{ book.isbn }}</dd>
+      <dt>분류</dt><dd>{{ book.category_code }} {{ book.category_name }}{% if book.kdc_no %} · KDC {{ book.kdc_no }}{% endif %}</dd>
+      <dt>정가</dt><dd>{{ book.price | won if book.price else '-' }}</dd>
+      <dt>누적 대출</dt><dd>{{ loan_count }}회</dd>
+    </dl>
+  </section>
+  <section>
+    <div class="section__head"><h2>소장 현황</h2></div>
+    <dl class="info">
+      <dt>이용 가능 복본</dt><dd>{{ book.total_copies }}권</dd>
+      <dt>대출가능</dt><dd>{{ book.available_copies }}권</dd>
+    </dl>
+  </section>
+</div>
+
+<section class="section">
+  <div class="section__head"><h2>복본 <span class="h-meta">{{ copies | length }}권</span></h2></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>등록번호</th><th>청구기호</th><th>위치</th><th>상태</th><th>대출 정보</th><th>입수일</th><th>상태 변경</th></tr></thead>
+    <tbody>
+    {% for c in copies %}
+      <tr>
+        <td class="mono">{{ c.reg_no }}</td>
+        <td class="mono">{{ c.call_no }}</td>
+        <td>{{ c.location }}</td>
+        <td class="nowrap">{{ badge(c.status) }}{% if c.removed_date %} <span class="muted">{{ c.removed_date | d('%y.%m.%d') }}</span>{% endif %}</td>
+        <td>
+          {% if c.loan_id %}
+            <a href="{{ url_for('members.detail', member_id=c.member_id) }}">{{ c.member_name }}</a>
+            · 반납예정 {{ c.due_date | d }}
+            {% if c.due_date < today %}<span class="text-danger">연체</span>{% endif %}
+          {% else %}<span class="muted">-</span>{% endif %}
+        </td>
+        <td class="nowrap muted">{{ c.acquired_date | d }}</td>
+        <td>
+          {% if c.status != '대출중' %}
+            <form class="inline" method="post" action="{{ url_for('books.change_copy_status', copy_id=c.copy_id) }}"
+                  onsubmit="return this.status.value === '{{ c.status }}' || confirm(this.status.value + ' 처리할까요?')">
+              <select name="status" aria-label="{{ c.reg_no }} 상태">
+                {% for s in manual_statuses %}<option {{ 'selected' if s == c.status }}>{{ s }}</option>{% endfor %}
+              </select>
+              <button class="btn btn--secondary btn--sm">변경</button>
+            </form>
+          {% else %}<span class="muted">-</span>{% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="empty">복본이 없습니다.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+<section class="section">
+  <div class="section__head"><h2>복본 추가</h2></div>
+  <form method="post" action="{{ url_for('books.add_copy', isbn=book.isbn) }}" class="filters">
+    <label class="field field--xs">권수
+      <input name="count" type="number" min="1" max="10" value="1">
+    </label>
+    <label class="field field--grow">배가위치
+      <input name="location" placeholder="종합자료실">
+    </label>
+    <button class="btn btn--secondary">추가</button>
+  </form>
+</section>
+{% endblock %}

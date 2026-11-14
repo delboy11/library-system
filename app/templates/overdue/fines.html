@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge %}
+{% block title %}연체료{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head__text">
+    <h1>연체료 관리</h1>
+  </div>
+  <div class="btn-row"><a class="btn btn--secondary" href="{{ url_for('overdue.index') }}">연체·정지 관리</a></div>
+</div>
+
+<div class="figures figures--2">
+  <div class="figure"><span class="figure__label">조회 합계 ({{ status or '전체' }})</span><span class="figure__value">{{ '{:,}'.format(total) }}<small>원</small></span></div>
+  <div class="figure"><span class="figure__label">조회 건수</span><span class="figure__value">{{ fines | length }}<small>건</small></span></div>
+</div>
+
+<nav class="tabs section" aria-label="납부 상태">
+  {% for key, label in [('미납', '미납'), ('납부', '납부'), ('면제', '면제'), ('', '전체')] %}
+    <a class="tab" href="{{ url_for('overdue.fines', status=key, q=q) }}"{% if status == key %} aria-current="true"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</nav>
+
+<form class="filters" method="get">
+  <input type="hidden" name="status" value="{{ status }}">
+  <label class="field field--grow">검색
+    <input type="search" name="q" value="{{ q }}" placeholder="회원명 · 학번">
+  </label>
+  <button class="btn btn--secondary">검색</button>
+</form>
+
+<div class="table-wrap"><table>
+  <thead><tr><th>부과일</th><th>회원</th><th>도서</th><th>반납예정일</th><th>반납일</th><th class="num">연체</th><th class="num">금액</th><th>상태</th><th></th></tr></thead>
+  <tbody>
+  {% for f in fines %}
+    <tr>
+      <td class="nowrap">{{ f.imposed_date | d }}</td>
+      <td><a href="{{ url_for('members.detail', member_id=f.member_id) }}">{{ f.member_name }}</a> <span class="muted mono">{{ f.member_no }}</span></td>
+      <td>{{ f.title }} <span class="mono muted">{{ f.reg_no }}</span>{% if f.return_type == '분실' %} {{ badge('분실') }}{% endif %}</td>
+      <td class="nowrap">{{ f.due_date | d }}</td>
+      <td class="nowrap">{{ f.return_date | d }}</td>
+      <td class="num">{{ f.overdue_days }}일</td>
+      <td class="num"><strong>{{ f.amount | won }}</strong></td>
+      <td class="nowrap">{{ badge(f.status) }}{% if f.paid_date %} <span class="muted">{{ f.paid_date | d('%m/%d') }} {{ f.staff_name or '' }}</span>{% endif %}</td>
+      <td class="actions">{% if f.status == '미납' %}
+        <span class="row-actions">
+          <form class="inline" method="post" action="{{ url_for('overdue.pay', fine_id=f.fine_id) }}"><button class="btn btn--secondary btn--sm">납부</button></form>
+          {% if session.staff_role == '관리자' %}
+            <form class="inline" method="post" action="{{ url_for('overdue.waive', fine_id=f.fine_id) }}"><button class="btn btn--secondary btn--sm">면제</button></form>
+          {% endif %}
+        </span>
+      {% endif %}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="9" class="empty">연체료 내역이 없습니다.</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endblock %}

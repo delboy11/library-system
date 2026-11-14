@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, loan_actions %}
+{% block title %}연체·정지 관리{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head__text">
+    <h1>연체 · 대출정지 관리</h1>
+  </div>
+  <div class="btn-row"><a class="btn btn--secondary" href="{{ url_for('overdue.fines') }}">연체료 관리</a></div>
+</div>
+
+<div class="figures figures--3">
+  <div class="figure {{ 'figure--alert' if overdue_loans }}"><span class="figure__label">연체 중인 대출</span><span class="figure__value">{{ overdue_loans | length }}<small>건</small></span></div>
+  <div class="figure"><span class="figure__label">지금 반납 시 예상 연체료</span><span class="figure__value">{{ '{:,}'.format(pending.amount | int) }}<small>원</small></span></div>
+  <div class="figure {{ 'figure--alert' if suspended }}"><span class="figure__label">대출정지 중인 회원</span><span class="figure__value">{{ suspended | map(attribute="member_id") | unique | list | length }}<small>명</small></span></div>
+</div>
+
+<section class="section">
+  <div class="section__head"><h2>연체자 목록</h2></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>회원</th><th>연락처</th><th>도서</th><th>등록번호</th><th>반납예정일</th><th class="num">연체</th><th></th></tr></thead>
+    <tbody>
+    {% for l in overdue_loans %}
+      <tr>
+        <td><a href="{{ url_for('members.detail', member_id=l.member_id) }}">{{ l.member_name }}</a> <span class="muted mono">{{ l.member_no }}</span></td>
+        <td class="muted nowrap">{{ l.phone }}</td>
+        <td><a href="{{ url_for('books.detail', isbn=l.isbn) }}">{{ l.title }}</a></td>
+        <td class="mono">{{ l.reg_no }}</td>
+        <td class="nowrap">{{ l.due_date | d }}</td>
+        <td class="num text-danger">{{ l.overdue_days }}일</td>
+        <td class="actions">{{ loan_actions(l) }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="empty">연체 중인 대출이 없습니다.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+<section class="section">
+  <div class="section__head"><h2>대출정지 중인 회원</h2></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>회원</th><th>사유</th><th>정지 기간</th><th>비고</th><th>적용 사서</th><th></th></tr></thead>
+    <tbody>
+    {% for s in suspended %}
+      <tr>
+        <td><a href="{{ url_for('members.detail', member_id=s.member_id) }}">{{ s.name }}</a> <span class="muted mono">{{ s.member_no }}</span></td>
+        <td class="nowrap">{{ badge('유효') }} {{ s.reason }}</td>
+        <td class="nowrap">{{ s.start_date | d }} ~ <strong>{{ s.end_date | d }}</strong></td>
+        <td class="muted">{{ s.memo or '' }}</td>
+        <td>{{ s.staff_name }}</td>
+        <td class="actions">
+          <form class="inline" method="post" action="{{ url_for('overdue.release', suspension_id=s.suspension_id) }}"
+                onsubmit="return confirm('대출정지를 해제할까요?')">
+            <button class="btn btn--secondary btn--sm">해제</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="empty">대출정지 중인 회원이 없습니다.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+<section class="section">
+  <div class="section__head"><h2>대출정지 적용</h2></div>
+  <form method="post" action="{{ url_for('overdue.suspend') }}" class="filters">
+    <label class="field">학번 · 교번
+      <input name="member_no" required>
+    </label>
+    <label class="field">정지 사유
+      <select name="reason">{% for r in reasons %}<option>{{ r }}</option>{% endfor %}</select>
+    </label>
+    <label class="field field--xs">일수
+      <input name="days" type="number" min="1" max="365" value="7" required>
+    </label>
+    <label class="field field--grow">비고
+      <input name="memo">
+    </label>
+    <button class="btn btn--primary">정지 적용</button>
+  </form>
+</section>
+{% endblock %}

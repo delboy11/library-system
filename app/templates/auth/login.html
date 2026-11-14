@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}로그인{% endblock %}
+{% block content %}
+<div class="auth">
+  <h1>도서관 관리 시스템</h1>
+  <form method="post" class="form form--stack">
+    <label class="field">아이디<input name="login_id" autocomplete="username" autofocus required></label>
+    <label class="field">비밀번호<input name="password" type="password" autocomplete="current-password" required></label>
+    <button class="btn btn--primary">로그인</button>
+  </form>
+  <p class="auth__alt"><a href="{{ url_for('portal.login') }}">회원 로그인</a></p>
+</div>
+{% endblock %}

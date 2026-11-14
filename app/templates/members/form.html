@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ '회원 등록' if is_new else '회원 수정' }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head__text">
+    <p class="crumb"><a href="{{ url_for('members.list_members') }}">회원</a> ›</p>
+    <h1>{{ '회원 등록' if is_new else '회원 정보 수정' }}</h1>
+  </div>
+</div>
+
+<form method="post" class="form">
+  <label class="field">학번 · 교번
+    <input name="member_no" value="{{ values.member_no or '' }}" required maxlength="20" pattern="[0-9A-Za-z]{4,20}">
+  </label>
+  <label class="field">이름
+    <input name="name" value="{{ values.name or '' }}" required maxlength="30" autocomplete="off">
+  </label>
+  <label class="field">회원구분
+    <select name="type_code">
+      {% for t in types %}
+        <option value="{{ t.type_code }}" {{ 'selected' if t.type_code == values.type_code }}>
+          {{ t.type_name }} ({{ t.max_loan_count }}권 · {{ t.loan_days }}일 · 연장 {{ t.max_renew }}회)
+        </option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="field">소속 (학과·부서)
+    <input name="department" value="{{ values.department or '' }}" maxlength="50">
+  </label>
+  <label class="field">전화번호
+    <input name="phone" value="{{ values.phone or '' }}" required maxlength="13" placeholder="010-0000-0000">
+  </label>
+  <label class="field">이메일
+    <input name="email" type="email" value="{{ values.email or '' }}" maxlength="100">
+  </label>
+  <label class="field">{{ '초기 비밀번호' if is_new else '비밀번호 재설정' }}
+    <input name="password" type="password" {{ 'required' if is_new }} minlength="8" autocomplete="new-password" placeholder="{{ '8자 이상' if is_new else '바꿀 때만 입력' }}">
+  </label>
+  <div class="form__actions">
+    <button class="btn btn--primary">{{ '등록' if is_new else '저장' }}</button>
+    <a class="btn btn--secondary" href="{{ url_for('members.list_members') if is_new else url_for('members.detail', member_id=values.member_id) }}">취소</a>
+  </div>
+</form>
+{% endblock %}

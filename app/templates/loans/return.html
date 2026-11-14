@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}반납{% endblock %}
+{% block content %}
+<form method="post" class="desk">
+  <label class="field">복본 등록번호
+    <input name="reg_no" placeholder="EM000003" autofocus required>
+  </label>
+  <button class="btn btn--primary btn--xl">반납</button>
+</form>
+
+<section class="section">
+  <div class="section__head"><h2>오늘 반납된 도서 <span class="h-meta">{{ returned_today | length }}건</span></h2></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>반납시각</th><th>등록번호</th><th>도서</th><th>회원</th><th>반납예정일</th><th class="num">연체</th><th>구분</th><th>처리 사서</th></tr></thead>
+    <tbody>
+    {% for l in returned_today %}
+      <tr>
+        <td class="nowrap">{{ l.return_date | d('%H:%M') }}</td>
+        <td class="mono">{{ l.reg_no }}</td>
+        <td><a href="{{ url_for('books.detail', isbn=l.isbn) }}">{{ l.title }}</a></td>
+        <td><a href="{{ url_for('members.detail', member_id=l.member_id) }}">{{ l.member_name }}</a></td>
+        <td class="nowrap">{{ l.due_date | d }}</td>
+        <td class="num">{% if l.overdue_days %}<span class="text-danger">{{ l.overdue_days }}일</span>{% else %}-{% endif %}</td>
+        <td>{{ l.return_type }}</td>
+        <td>{{ l.return_staff_name or '' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="empty">오늘 반납된 도서가 없습니다.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}

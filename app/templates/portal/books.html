@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}도서 검색{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head__text">
+    <h1>도서 검색</h1>
+  </div>
+</div>
+
+<form class="desk" method="get">
+  <label class="field">검색어
+    <input type="search" name="q" value="{{ q }}" placeholder="서명 · 저자 · 출판사 · ISBN" autofocus>
+  </label>
+  <button class="btn btn--primary btn--xl">검색</button>
+</form>
+
+{% if q %}
+<section class="section">
+  <div class="section__head"><h2>검색 결과 <span class="h-meta">{{ books | length }}종</span></h2></div>
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>서명</th><th>저자</th><th>출판사</th><th>발행</th><th class="num">대출가능 / 소장</th></tr></thead>
+    <tbody>
+    {% for b in books %}
+      <tr>
+        <td class="stack__title"><a href="{{ url_for('portal.book_detail', isbn=b.isbn) }}"><strong>{{ b.title }}</strong></a></td>
+        <td data-label="저자">{{ b.authors or '-' }}</td>
+        <td data-label="출판사">{{ b.publisher_name }}</td>
+        <td data-label="발행">{{ b.pub_year or '-' }}</td>
+        <td class="num nowrap" data-label="대출가능 / 소장">{{ b.available_copies }} / {{ b.total_copies }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="empty">검색 결과가 없습니다.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endif %}
+{% endblock %}

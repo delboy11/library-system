@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, suspension_state with context %}
+{% block title %}내 도서관{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head__text">
+    <h1>{{ member.name }}님의 도서관</h1>
+    <p class="lead">{{ member.member_no }} · {{ member.type_name }}{% if member.department %} · {{ member.department }}{% endif %}</p>
+  </div>
+  <div class="btn-row"><a class="btn btn--secondary" href="{{ url_for('portal.books') }}">도서 검색</a></div>
+</div>
+
+{% if member.suspend_until %}
+  <div class="notice notice--danger">{{ member.suspend_until | d('%Y년 %m월 %d일') }}까지 대출이 정지된 상태입니다.</div>
+{% endif %}
+{% if member.overdue_loans %}
+  <div class="notice notice--danger">연체 중인 도서가 {{ member.overdue_loans }}권 있습니다. 반납 전까지 대출·연장할 수 없습니다.</div>
+{% endif %}
+{% if member.unpaid_fine %}
+  <div class="notice notice--warn">미납 연체료 {{ member.unpaid_fine | won }}이 있습니다. 납부 전까지 대출·연장할 수 없습니다.</div>
+{% endif %}
+
+<div class="figures figures--4">
+  <div class="figure"><span class="figure__label">대출 중</span><span class="figure__value">{{ member.active_loans }}<small>/ {{ member.max_loan_count }}권</small></span></div>
+  <div class="figure {{ 'figure--alert' if member.overdue_loans }}"><span class="figure__label">연체</span><span class="figure__value">{{ member.overdue_loans }}<small>권</small></span></div>
+  <div class="figure {{ 'figure--alert' if member.unpaid_fine }}"><span class="figure__label">미납 연체료</span><span class="figure__value">{{ '{:,}'.format(member.unpaid_fine | int) }}<small>원</small></span></div>
+  <div class="figure {{ 'figure--alert' if member.loan_state == '대출정지' }}"><span class="figure__label">대출 상태</span><span class="figure__value figure__value--text">{{ member.loan_state }}</span></div>
+</div>
+
+<section class="section">
+  <div class="section__head"><h2>대출 중인 도서</h2></div>
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>도서</th><th>청구기호</th><th>대출일</th><th>반납예정일</th><th class="num">연장</th><th>상태</th><th></th></tr></thead>
+    <tbody>
+    {% for l in loans %}
+      <tr>
+        <td class="stack__title"><a href="{{ url_for('portal.book_detail', isbn=l.isbn) }}">{{ l.title }}</a></td>
+        <td class="muted mono" data-label="청구기호">{{ l.call_no }}</td>
+        <td class="nowrap" data-label="대출일">{{ l.loan_date | d }}</td>
+        <td class="nowrap" data-label="반납예정일"><strong>{{ l.due_date | d }}</strong></td>
+        <td class="num" data-label="연장">{{ l.renew_count }} / {{ member.max_renew }}</td>
+        <td class="nowrap" data-label="상태"><span>{{ badge(l.loan_state) }}{% if l.overdue_days %} <span class="text-danger">{{ l.overdue_days }}일</span>{% endif %}</span></td>
+        <td class="actions">
+          <form class="inline" method="post" action="{{ url_for('portal.renew', loan_id=l.loan_id) }}">
+            <button class="btn btn--secondary btn--sm">연장 신청</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="empty">대출 중인 도서가 없습니다.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+<div class="split">
+  <section class="section">
+    <div class="section__head"><h2>연체료</h2></div>
+    <div class="table-wrap"><table class="stack">
+      <thead><tr><th>도서</th><th class="num">연체</th><th class="num">금액</th><th>상태</th></tr></thead>
+      <tbody>
+      {% for f in fines %}
+        <tr>
+          <td class="stack__title">{{ f.title }}</td>
+          <td class="num" data-label="연체">{{ f.overdue_days }}일</td>
+          <td class="num" data-label="금액">{{ f.amount | won }}</td>
+          <td data-label="상태">{{ badge(f.status) }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="empty">연체료 내역이 없습니다.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+  <section class="section">
+    <div class="section__head"><h2>대출정지 이력</h2></div>
+    <div class="table-wrap"><table class="stack">
+      <thead><tr><th>사유</th><th>기간</th><th>상태</th></tr></thead>
+      <tbody>
+      {% for s in suspensions %}
+        <tr>
+          <td class="stack__title">{{ s.reason }}</td>
+          <td class="nowrap" data-label="기간">{{ s.start_date | d }} ~ {{ s.end_date | d }}</td>
+          <td data-label="상태">{{ suspension_state(s) }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3" class="empty">대출정지 이력이 없습니다.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+</div>
+
+<section class="section">
+  <div class="section__head"><h2>지난 대출 기록 <span class="h-meta">최근 30건</span></h2></div>
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>도서</th><th>대출일</th><th>반납일</th><th>상태</th></tr></thead>
+    <tbody>
+    {% for l in history %}
+      <tr>
+        <td class="stack__title"><a href="{{ url_for('portal.book_detail', isbn=l.isbn) }}">{{ l.title }}</a></td>
+        <td class="nowrap" data-label="대출일">{{ l.loan_date | d }}</td>
+        <td class="nowrap" data-label="반납일">{{ l.return_date | d }}</td>
+        <td class="nowrap" data-label="상태"><span>{{ badge(l.loan_state) }}{% if l.overdue_days %} <span class="text-danger">연체 {{ l.overdue_days }}일</span>{% endif %}</span></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4" class="empty">대출 기록이 없습니다.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}

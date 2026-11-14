@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge %}
+{% block title %}{{ book.title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="page-head__text">
+    <p class="crumb"><a href="{{ url_for('portal.books') }}">도서 검색</a> ›</p>
+    <h1>{{ book.title }}</h1>
+    <p class="lead">{{ book.authors }} · {{ book.publisher_name }} · {{ book.pub_year or '' }}</p>
+  </div>
+</div>
+
+<dl class="info narrow">
+  <dt>ISBN</dt><dd class="mono">{{ book.isbn }}</dd>
+  <dt>분류</dt><dd>{{ book.kdc_no or book.category_code }} {{ book.category_name }}</dd>
+  <dt>대출가능</dt><dd>{{ book.available_copies }} / {{ book.total_copies }}권</dd>
+</dl>
+
+<section class="section">
+  <div class="section__head"><h2>소장 정보</h2></div>
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>등록번호</th><th>청구기호</th><th>위치</th><th>상태</th><th>반납예정일</th></tr></thead>
+    <tbody>
+    {% for c in copies %}
+      <tr>
+        <td class="mono stack__title">{{ c.reg_no }}</td>
+        <td class="mono" data-label="청구기호">{{ c.call_no }}</td>
+        <td data-label="위치">{{ c.location }}</td>
+        <td data-label="상태">{{ badge(c.status) }}</td>
+        <td data-label="반납예정일">{{ c.due_date | d }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="empty">이용할 수 있는 소장본이 없습니다.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}
