@@ -107,14 +107,15 @@ SELECT l.loan_id, l.member_id, m.member_no, m.name AS member_name, m.phone,
 
 
 -- 회원 현황 : 대출 중·연체 권수, 미납 연체료, 대출정지 종료일, 대출상태
---   대출상태 = 탈퇴 / 대출정지(대출정지 기간 중이거나 연체 도서 보유) / 대출가능
+--   대출상태 = 탈퇴 / 대출정지(대출정지 기간 중 · 연체 도서 보유 · 미납 연체료) / 대출가능
+--   대출정지의 세 조건은 sp_borrow · sp_renew 가 대출·연장을 거부하는 조건과 같다
 CREATE OR REPLACE VIEW v_member_status AS
 SELECT x.member_id, x.member_no, x.name, x.type_code, t.type_name, x.department, x.phone, x.email,
        x.status, x.join_date, x.withdraw_date,
        t.max_loan_count, t.loan_days, t.max_renew, t.fine_per_day,
        x.active_loans, x.overdue_loans, x.unpaid_fine, x.suspend_until,
        CASE WHEN x.status = '탈퇴' THEN '탈퇴'
-            WHEN x.suspend_until IS NOT NULL OR x.overdue_loans > 0 THEN '대출정지'
+            WHEN x.suspend_until IS NOT NULL OR x.overdue_loans > 0 OR x.unpaid_fine > 0 THEN '대출정지'
             ELSE '대출가능' END AS loan_state
   FROM (SELECT m.*,
                (SELECT COUNT(*) FROM loan l

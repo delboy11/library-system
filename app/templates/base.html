@@ -60,5 +60,21 @@
   {% endwith %}
   {% block content %}{% endblock %}
 </main>
+{% if session.staff_id and not is_portal %}
+  {# 시스템 구성 : 브라우저(클라이언트) → 웹 서버(Flask) → DB 서버(MySQL). DB 서버는 다른 PC 다 #}
+  {% set sys = system_info() %}
+  <footer class="wrap sysinfo" aria-label="시스템 구성">
+    <span>브라우저 <span class="mono">{{ sys.browser }}</span></span>
+    <span aria-hidden="true">→</span>
+    <span>웹 서버 <span class="mono">{{ sys.app_host }}</span> (Flask)</span>
+    <span aria-hidden="true">→</span>
+    {% if sys.db %}
+      <span>DB 서버 <span class="mono">{{ sys.db.db_host }}:{{ sys.db.port }}</span> · 호스트 <span class="mono">{{ sys.db.db_hostname }}</span> · MySQL {{ sys.db.version }}</span>
+      <span class="sysinfo__who">DB 가 본 접속 계정 <span class="mono">{{ sys.db.client }}</span></span>
+    {% else %}
+      <span class="text-danger">DB 서버 연결 안 됨</span>
+    {% endif %}
+  </footer>
+{% endif %}
 </body>
 </html>

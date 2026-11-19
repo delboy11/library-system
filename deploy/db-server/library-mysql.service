@@ -1,0 +1,22 @@
+# DB 서버 PC 가 재부팅되면 Tailscale 주소가 생긴 뒤 MySQL 컨테이너를 켠다 (선택).
+# 설치 : User·경로·BIND_IP 를 고친 뒤
+#   sudo cp deploy/db-server/library-mysql.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now library-mysql
+[Unit]
+Description=library_db MySQL container (Docker)
+Requires=docker.service
+After=docker.service tailscaled.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=delboy
+Environment=BIND_IP=100.77.2.39
+ExecStart=/home/delboy/library-system/deploy/db-server/start.sh
+# 앞의 - : 컨테이너가 이미 없어도 실패로 보지 않는다
+ExecStop=-/usr/bin/docker stop library-mysql
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

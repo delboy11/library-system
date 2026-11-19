@@ -25,8 +25,10 @@ class LibraryScenarioTest(unittest.TestCase):
     def setUpClass(cls):
         subprocess.run([str(ROOT / "scripts" / "init_db.sh")], check=True, capture_output=True)
         cls.app = create_app()
-        cls.db = pymysql.connect(host="127.0.0.1", user="library", password="library1234", database="library_db",
-                                 charset="utf8mb4", cursorclass=pymysql.cursors.DictCursor, autocommit=True)
+        cfg = cls.app.config                                   # DB_HOST 를 주면 다른 PC 의 DB 서버로 테스트
+        cls.db = pymysql.connect(host=cfg["DB_HOST"], port=cfg["DB_PORT"], user="library", password="library1234",
+                                 database="library_db", charset="utf8mb4",
+                                 cursorclass=pymysql.cursors.DictCursor, autocommit=True)
 
     @classmethod
     def tearDownClass(cls):
@@ -240,6 +242,15 @@ class LibraryScenarioTest(unittest.TestCase):
                                         follow_redirects=True)
         self.assertIn("탈퇴한 회원", flashes(r)[0])
 
+    def test_42_member_state_matches_borrow_rules(self):
+        # 미납 연체료만 있는 회원도 '대출정지' — sp_borrow 가 거부하는 조건(정지·연체·미납)과 같다
+        m = self.one("SELECT unpaid_fine, overdue_loans, suspend_until, loan_state FROM v_member_status "
+                     "WHERE member_no = '20214410'")
+        self.assertEqual((m["overdue_loans"], m["suspend_until"], m["loan_state"]), (0, None, "대출정지"))
+        self.assertGreater(m["unpaid_fine"], 0)
+        self.assertIn("20214410", self.staff().get("/members/?state=대출정지").data.decode())
+        self.assertNotIn("20214410", self.staff().get("/members/?state=대출가능").data.decode())
+
     # ---- 6. 대출정지 적용·해제 -------------------------------------------------------------
     def test_50_suspend_and_release(self):
         c = self.staff()
@@ -317,6 +328,21 @@ class LibraryScenarioTest(unittest.TestCase):
             r = self.app.test_client().post("/login?next=" + bad.replace("\t", "%09"),
                                             data={"login_id": "lib01", "password": "lib1234"})
             self.assertEqual(r.headers["Location"], "/")
+
+    # ---- 9. DB 서버 분리 ---------------------------------------------------------------
+    def test_80_system_info_shows_db_server(self):
+        page = self.staff().get("/").data.decode()
+        self.assertIn("DB 서버", page)
+        self.assertRegex(page, r"library@[\w.:%-]+")                 # DB 서버가 본 접속 주소
+        self.assertNotIn("DB 서버", self.member("20231234").get("/my/").data.decode())   # 회원 화면에는 없음
+
+    def test_81_db_server_unreachable_shows_guide(self):
+        app = create_app()
+        app.config.update(DB_HOST="127.0.0.1", DB_PORT=1)             # 아무도 받지 않는 포트
+        with self.assertLogs(app.logger, "ERROR"):                    # 연결 실패를 로그로 남긴다
+            r = app.test_client().post("/login", data={"login_id": "lib01", "password": "lib1234"})
+        self.assertEqual(r.status_code, 503)
+        self.assertIn("DB 서버에 연결할 수 없습니다", r.data.decode())
 
 
 if __name__ == "__main__":

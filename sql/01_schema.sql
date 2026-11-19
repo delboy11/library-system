@@ -15,11 +15,14 @@ CREATE DATABASE library_db
 USE library_db;
 
 -- 응용프로그램 전용 계정 (DML + 프로시저 실행 권한만 부여)
-DROP USER IF EXISTS 'library'@'localhost', 'library'@'127.0.0.1';
+--   DB 서버와 응용프로그램(웹 서버)을 다른 PC 에 두므로 원격 접속('%')을 허용한다.
+--   'localhost' 는 DB 서버 PC 안에서 접속할 때(소켓·named pipe) 쓰인다.
+--   접속을 특정 대역으로 좁히려면 : RENAME USER 'library'@'%' TO 'library'@'192.168.0.%';
+DROP USER IF EXISTS 'library'@'localhost', 'library'@'127.0.0.1', 'library'@'%';
 CREATE USER 'library'@'localhost' IDENTIFIED BY 'library1234';
-CREATE USER 'library'@'127.0.0.1' IDENTIFIED BY 'library1234';
+CREATE USER 'library'@'%'         IDENTIFIED BY 'library1234';
 GRANT SELECT, INSERT, UPDATE, DELETE, EXECUTE ON library_db.* TO 'library'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE, EXECUTE ON library_db.* TO 'library'@'127.0.0.1';
+GRANT SELECT, INSERT, UPDATE, DELETE, EXECUTE ON library_db.* TO 'library'@'%';
 
 
 -- ---------------------------------------------------------------------

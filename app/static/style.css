@@ -110,6 +110,10 @@ main a:not([class]):is(:hover, :focus-visible), .link:is(:hover, :focus-visible)
 /* ------------------------------------------------------------------ 틀 */
 .wrap { width: min(100% - 2 * var(--gut), var(--container)); margin-inline: auto; }
 .page { padding-block: var(--s-7) var(--s-9); }
+/* 시스템 구성 줄 (브라우저 → 웹 서버 → DB 서버) */
+.sysinfo { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); padding-block: var(--s-4) var(--s-6);
+           border-top: 1px solid var(--line); font-size: var(--t-small); color: var(--muted); }
+.sysinfo__who { flex-basis: 100%; }
 
 /* 상단 내비 : 불투명한 바탕과 1px 선. 낱말에는 알약 모양 배경을 쓰지 않는다 */
 .nav { position: sticky; top: 0; z-index: 50; background: var(--bg); border-bottom: 1px solid var(--line); }

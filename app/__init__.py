@@ -1,9 +1,11 @@
+import socket
 from datetime import date
 from pathlib import Path
 
 from urllib.parse import urlsplit
 
-from flask import Flask, abort, redirect, request, session, url_for
+import pymysql
+from flask import Flask, abort, redirect, render_template, request, session, url_for
 
 from config import Config
 
@@ -59,6 +61,23 @@ def create_app():
     def inject_globals():
         # asset_v : 스타일시트가 바뀌면 주소가 달라져 브라우저가 옛 파일을 쓰지 않는다
         css = Path(app.static_folder) / "style.css"
-        return {"today": date.today(), "asset_v": int(css.stat().st_mtime)}
+        return {"today": date.today(), "asset_v": int(css.stat().st_mtime), "system_info": system_info}
+
+    def system_info():
+        """화면 아래 시스템 구성 줄 : 브라우저 → 웹 서버 → DB 서버 (사서 화면에서만 호출)"""
+        try:
+            info = db.server_info()
+        except pymysql.MySQLError:
+            info = None
+        return {"browser": request.remote_addr, "app_host": socket.gethostname(), "db": info}
+
+    @app.errorhandler(pymysql.MySQLError)
+    def database_unavailable(exc):
+        # DB 서버(다른 PC)에 닿지 못하면 오류 화면 대신 원인과 점검 순서를 보여 준다
+        if not db.is_connection_error(exc):
+            raise exc
+        app.logger.error("DB 서버 연결 실패: %s", exc)
+        return render_template("db_error.html", error=exc, db_host=app.config["DB_HOST"],
+                               db_port=app.config["DB_PORT"]), 503
 
     return app

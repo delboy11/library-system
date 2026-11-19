@@ -17,14 +17,17 @@ test_32_book_with_history_cannot_be_deleted (tests.test_scenarios.LibraryScenari
 test_33_book_form_keeps_author_roles_and_rejects_bad_input (tests.test_scenarios.LibraryScenarioTest.test_33_book_form_keeps_author_roles_and_rejects_bad_input) ... ok
 test_40_member_register_validation (tests.test_scenarios.LibraryScenarioTest.test_40_member_register_validation) ... ok
 test_41_withdraw_rules (tests.test_scenarios.LibraryScenarioTest.test_41_withdraw_rules) ... ok
+test_42_member_state_matches_borrow_rules (tests.test_scenarios.LibraryScenarioTest.test_42_member_state_matches_borrow_rules) ... ok
 test_50_suspend_and_release (tests.test_scenarios.LibraryScenarioTest.test_50_suspend_and_release) ... ok
 test_60_db_constraints (tests.test_scenarios.LibraryScenarioTest.test_60_db_constraints) ... ok
 test_61_app_account_has_no_ddl_privilege (tests.test_scenarios.LibraryScenarioTest.test_61_app_account_has_no_ddl_privilege) ... ok
 test_70_access_control (tests.test_scenarios.LibraryScenarioTest.test_70_access_control) ... ok
 test_71_pages_with_suspension_and_overdue_render (tests.test_scenarios.LibraryScenarioTest.test_71_pages_with_suspension_and_overdue_render) ... ok
 test_72_csrf_and_open_redirect (tests.test_scenarios.LibraryScenarioTest.test_72_csrf_and_open_redirect) ... ok
+test_80_system_info_shows_db_server (tests.test_scenarios.LibraryScenarioTest.test_80_system_info_shows_db_server) ... ok
+test_81_db_server_unreachable_shows_guide (tests.test_scenarios.LibraryScenarioTest.test_81_db_server_unreachable_shows_guide) ... ok
 
 ----------------------------------------------------------------------
-Ran 25 tests in 6.647s
+Ran 28 tests in 104.091s
 
 OK
