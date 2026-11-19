@@ -4,6 +4,7 @@
 -- 계정 : 사서 admin / admin1234 (관리자), lib01 / lib1234 (사서)
 --        회원 포털  학번(교번) / member1234  (예: 20231234)
 -- =====================================================================
+SET NAMES utf8mb4;   -- 클라이언트 문자셋 고정 : 어떤 mysql 클라이언트로 실행해도 한글이 깨지지 않게
 USE library_db;
 
 INSERT INTO member_type (type_code, type_name, max_loan_count, loan_days, max_renew, fine_per_day) VALUES

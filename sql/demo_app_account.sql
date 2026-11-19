@@ -7,6 +7,7 @@
 -- =====================================================================
 
 -- 누구로, 어디서 접속했나 (USER() 의 호스트 = 이 PC 의 IP)
+SET NAMES utf8mb4;   -- 클라이언트 문자셋 고정 : 어떤 mysql 클라이언트로 실행해도 한글이 깨지지 않게
 SELECT CURRENT_USER() AS account, USER() AS connected_from, @@hostname AS db_server;
 SHOW GRANTS;
 

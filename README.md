@@ -52,6 +52,8 @@ library-system/
 │   ├── portal.py            # 회원 포털 (/my)
 │   ├── nl_api.py            # 국립중앙도서관 API 클라이언트
 │   └── db.py                # 연결 풀·트랜잭션·프로시저 호출·오류 메시지 변환
+├── docker-compose.yml       # 한 PC 재현: db(MySQL 8.4) + web(Flask) 컨테이너
+├── Dockerfile               # web 컨테이너 이미지
 ├── deploy/db-server/        # DB 서버 PC 용: start.sh(Docker MySQL) · init.sh(초기화) · systemd 단위
 ├── tests/test_scenarios.py  # 업무 규칙 통합 테스트 28개
 └── docs/                    # 보고서 (00 설계 결정 ~ 13 시연 시나리오)
@@ -59,7 +61,74 @@ library-system/
 
 ## 실행 방법
 
-### 발표 구성 : DB 서버(delboy-metal) + 발표 노트북
+같은 코드를 두 가지 구성으로 실행한다. 차이는 웹 서버가 접속할 DB 주소(`DB_HOST`) 하나뿐이다.
+
+| 구성 | DB 위치 | 용도 |
+|---|---|---|
+| 1. 한 PC | 이 PC (Docker 컨테이너 또는 직접 설치한 MySQL) | 누구나 재현 · 발표 비상용 |
+| 2. 두 PC (발표) | DB 서버 PC `delboy-metal` (Tailscale) | DB 서버와 클라이언트의 물리적 분리 시연 |
+
+### 1. 한 PC 에서 실행 (재현용)
+
+#### 방법 A. Docker — 명령 한 줄 (권장)
+
+필요한 것: Docker Desktop (Windows · macOS) 또는 Docker Engine + Compose (Linux). MySQL · Python 설치는 필요 없다.
+
+```bash
+git clone https://github.com/delboy11/library-system.git
+cd library-system
+docker compose up -d --build
+```
+
+30초 정도 뒤 (처음에는 이미지 내려받는 시간이 더 든다) http://127.0.0.1:5000 사서 `admin` / `admin1234`, http://127.0.0.1:5000/my 회원 `20231234` / `member1234`.
+
+- `db` 컨테이너: MySQL 8.4. 처음 뜰 때 `sql/01 ~ 05` 를 순서대로 실행해 `library_db` 를 만든다. 시간대는 `+09:00` 으로 고정.
+- `web` 컨테이너: Flask 웹 서버. 앱 계정 `library` 로 `db` 에 접속한다. 사서 화면 맨 아래에 `웹 서버 library-web → DB 서버 db:3306 · 호스트 library-db` 가 표시된다.
+- 설정은 [`docker-compose.yml`](docker-compose.yml) · [`Dockerfile`](Dockerfile) 에 있다.
+
+| 하고 싶은 것 | 명령 |
+|---|---|
+| 상태 확인 | `docker compose ps` (db 가 `healthy`, web 이 `Up` 이면 준비 완료) |
+| 웹 서버 로그 | `docker compose logs -f web` |
+| 끄기 / 다시 켜기 (데이터 유지) | `docker compose stop` / `docker compose start` |
+| **데이터 다시 초기화** | `docker compose down -v` 후 `docker compose up -d` |
+| SQL 창 (root) | `docker compose exec db mysql -uroot -proot1234 --default-character-set=utf8mb4 library_db` 또는 Workbench 로 127.0.0.1:3306 · root / root1234 |
+| 시연용 SQL (명령 프롬프트 · bash) | `docker compose exec -T db mysql -ulibrary -plibrary1234 --force -t --default-character-set=utf8mb4 library_db < sql/demo_app_account.sql` |
+| 3306 · 5000 포트가 이미 쓰이고 있을 때 | bash: `DB_PORT=3307 APP_PORT=5001 docker compose up -d` · 명령 프롬프트: `set DB_PORT=3307` · `set APP_PORT=5001` 후 `docker compose up -d` |
+| 모두 지우기 | `docker compose down -v --rmi local` |
+
+#### 방법 B. MySQL 직접 설치
+
+Windows:
+
+1. MySQL 8.4 LTS 설치: dev.mysql.com 의 Windows MSI 설치 파일 → 설치 끝의 MySQL Configurator 에서 root 비밀번호 설정 (MySQL Installer 는 8.0 전용이고, 8.0 은 2026-04 에 지원이 끝났다)
+2. Python 3 설치 (설치 화면에서 "Add python.exe to PATH" 체크)
+3. 명령 프롬프트에서 프로젝트 폴더로 이동 후 (`DB_HOST` 를 지정하지 않으면 이 PC 의 MySQL)
+   ```bat
+   scripts\init_db.bat
+   python -m venv .venv
+   .venv\Scripts\pip install -r requirements.txt
+   .venv\Scripts\python run.py
+   ```
+   `init_db.bat` 은 PATH 에 mysql 이 없으면 `C:\Program Files\MySQL\MySQL Server *\bin` 에서 찾는다.
+   (MySQL Workbench 에서 `sql/` 의 다섯 파일을 01 → 05 순서로 열어 실행해도 된다.)
+
+macOS:
+
+```bash
+brew install mysql && brew services start mysql
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+./scripts/init_db.sh                      # DB 생성 + 데이터
+.venv/bin/python run.py                   # http://127.0.0.1:5000
+```
+
+#### 한 PC 구성에서 주의할 점
+
+- 대출 날짜는 **DB 를 초기화한 날 기준**으로 만들어진다. 재현하거나 발표하기 직전에 다시 초기화하면 연체·반납 예정 상황이 그대로 나온다.
+- 연체·대출정지 판단은 DB 의 `CURDATE()` 기준이라 DB 시간대가 한국이어야 한다. 직접 설치한 MySQL 은 PC 시계를 따르고, Docker 구성은 `+09:00` 으로 고정해 두었다. (컨테이너 기본값인 UTC 로 두면 오전 9시 전에 날짜가 하루 어긋난다)
+- 테스트(`tests/`)를 돌리면 DB 가 초기화된다.
+
+### 2. 발표 구성 : DB 서버(delboy-metal) + 발표 노트북
 
 **DB 서버** — 이미 설치되어 있고 재부팅 시 자동으로 켜진다 (systemd `library-mysql`). 처음 설치할 때만:
 
@@ -81,38 +150,17 @@ set DB_HOST=100.77.2.39
 
 시작할 때 ` * DB 서버 연결 OK : 100.77.2.39:3306 (호스트 delboy-metal, MySQL 8.4.13, …)` 가 나오면 준비 완료. 폰으로 회원 포털을 보여 주려면 `set APP_HOST=0.0.0.0` 도 지정한다.
 
+네트워크가 안 되면 1 의 한 PC 구성으로 바꾼다 (`DB_HOST` 를 지정하지 않고 실행).
+
+### 환경변수
+
 | 환경변수 | 기본값 | 설명 |
 |---|---|---|
 | `DB_HOST` · `DB_PORT` | 127.0.0.1 · 3306 | DB 서버 주소 (발표 구성 100.77.2.39) |
 | `DB_USER` · `DB_PASSWORD` · `DB_NAME` | library · library1234 · library_db | 앱 전용 계정 |
 | `APP_HOST` · `APP_PORT` | 127.0.0.1 · 5000 | 웹 서버가 받을 주소 (0.0.0.0 이면 다른 기기 접속 허용, debug 꺼짐) |
 
-### 비상: 한 PC 에서 실행 (네트워크가 안 될 때)
-
-macOS:
-
-```bash
-brew install mysql && brew services start mysql
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-./scripts/init_db.sh                      # DB 생성 + 데이터
-.venv/bin/python run.py                   # http://127.0.0.1:5000
-```
-
-Windows:
-
-1. MySQL Installer 로 MySQL Server 8.x(8.0.19 이상) 설치, root 비밀번호 설정
-2. Python 3 설치 (설치 화면에서 "Add python.exe to PATH" 체크)
-3. 명령 프롬프트에서 프로젝트 폴더로 이동 후 (`DB_HOST` 를 지정하지 않으면 이 PC 의 MySQL)
-   ```bat
-   scripts\init_db.bat
-   python -m venv .venv
-   .venv\Scripts\pip install -r requirements.txt
-   .venv\Scripts\python run.py
-   ```
-   `init_db.bat` 은 PATH 에 mysql 이 없으면 `C:\Program Files\MySQL\MySQL Server *\bin` 에서 찾는다.
-   (MySQL Workbench 에서 `sql/` 의 다섯 파일을 01 → 05 순서로 열어 실행해도 된다.)
-
-> 대출 날짜는 **DB 를 초기화한 날 기준**으로 만들어진다. 발표 직전에 다시 초기화하면 연체·반납 예정 상황이 그대로 재현된다.
+Docker 구성에서 `DB_PORT` · `APP_PORT` 는 이 PC 에 여는 포트 번호로 쓰인다 (컨테이너 안은 3306 · 5000 고정).
 
 ## 시연용 SQL (데이터 제어)
 
@@ -133,7 +181,8 @@ mysql -h 100.77.2.39 -u library -p --force -t --default-character-set=utf8mb4 li
 | 사서 | lib01 | lib1234 |
 | 회원 포털 | 학번·교번 (예: 20231234) | member1234 |
 | 앱 → DB | library | library1234 (DML·EXECUTE 권한만) |
-| DB 관리자 | root | DB 서버의 `~/.library-db/root_password` (Tailscale 안에서만 접속 가능) |
+| DB 관리자 (발표 DB 서버) | root | DB 서버의 `~/.library-db/root_password` (Tailscale 안에서만 접속 가능) |
+| DB 관리자 (Docker 한 PC) | root | root1234 (이 PC 의 127.0.0.1 에서만 접속 가능. 바꾸려면 처음 띄울 때 `MYSQL_ROOT_PASSWORD`) |
 
 ## 대출 규정 (숭실대학교 중앙도서관 기준)
 
@@ -170,7 +219,12 @@ export NL_CERT_KEY=발급받은키
 .venv/bin/python scripts/gen_docs.py                   # 09 용어 사전 · 10 도메인 정의서 · 11 테이블 기술서 재생성
 ```
 
-테스트는 `DB_HOST` 의 DB 를 초기화한다. 원격 DB 서버로 돌릴 때는 초기화 명령을 `MYSQL_BIN` 으로 지정한다:
+테스트는 `DB_HOST` 의 DB 를 초기화한다. Docker 구성이나 원격 DB 서버로 돌릴 때는 초기화 명령을 `MYSQL_BIN` 으로 지정한다:
+
+```bash
+MYSQL_BIN="docker compose exec -T -e MYSQL_PWD=root1234 db mysql" \
+  .venv/bin/python -m unittest tests.test_scenarios          # Docker 구성 (한 PC)
+```
 
 ```bash
 DB_HOST=100.77.2.39 MYSQL_BIN="ssh delboy@100.77.2.39 MYSQL_PWD=\$(cat ~/.library-db/root_password) docker exec -i -e MYSQL_PWD library-mysql mysql" \

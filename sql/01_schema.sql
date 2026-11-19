@@ -8,6 +8,7 @@
 --   대출 loan · 연장이력 renewal · 연체료 fine · 대출정지 suspension · 휴관일 closed_day
 -- =====================================================================
 
+SET NAMES utf8mb4;   -- 클라이언트 문자셋 고정 : 어떤 mysql 클라이언트로 실행해도 한글이 깨지지 않게
 DROP DATABASE IF EXISTS library_db;
 CREATE DATABASE library_db
   DEFAULT CHARACTER SET utf8mb4

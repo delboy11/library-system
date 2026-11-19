@@ -8,6 +8,7 @@
 --   · 미납 연체료가 있으면 대출·연장 불가 (우리 팀 정책)
 -- 실행 : mysql -u root --default-character-set=utf8mb4 < sql/02_programs.sql
 -- =====================================================================
+SET NAMES utf8mb4;   -- 클라이언트 문자셋 고정 : 어떤 mysql 클라이언트로 실행해도 한글이 깨지지 않게
 USE library_db;
 
 DELIMITER $$

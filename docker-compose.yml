@@ -1,0 +1,54 @@
+# 한 PC 에서 전체 재현 :  docker compose up -d --build   →   http://127.0.0.1:5000
+#   db  : MySQL 8.4. 처음 뜰 때 sql/01 ~ 05 를 순서대로 실행해 library_db 를 만든다
+#   web : Flask 웹 서버. 앱 계정 library 로 db 컨테이너에 접속한다 (DB_HOST=db)
+# 다시 초기화 :  docker compose down -v  후  docker compose up -d   (대출 날짜가 초기화한 날 기준이다)
+# 포트가 겹치면 :  DB_PORT=3307 APP_PORT=5001 docker compose up -d
+name: library-system
+
+services:
+  db:
+    image: mysql:8.4
+    hostname: library-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root1234}   # 처음 만들 때만 적용. 포트는 이 PC 에서만 열림
+      TZ: Asia/Seoul
+    command:
+      - --default-time-zone=+09:00      # 컨테이너 기본은 UTC. CURDATE() 가 한국 날짜여야 연체·반납예정일이 맞다
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --skip-name-resolve
+      - --mysqlx=OFF
+    ports:
+      - "127.0.0.1:${DB_PORT:-3306}:3306"         # Workbench · 테스트용 (이 PC 에서만 접속)
+    volumes:
+      - db-data:/var/lib/mysql
+      # sql/ 폴더 전체를 넣으면 시연용 demo_*.sql 까지 실행되므로 01 ~ 05 만 넣는다
+      - ./sql/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./sql/02_programs.sql:/docker-entrypoint-initdb.d/02_programs.sql:ro
+      - ./sql/03_base_data.sql:/docker-entrypoint-initdb.d/03_base_data.sql:ro
+      - ./sql/04_books.sql:/docker-entrypoint-initdb.d/04_books.sql:ro
+      - ./sql/05_sample_loans.sql:/docker-entrypoint-initdb.d/05_sample_loans.sql:ro
+    healthcheck:
+      # 초기화하는 동안 MySQL 은 네트워크를 닫고 돈다. TCP 로 앱 계정이 대출 테이블을 읽으면 준비 완료
+      test: ["CMD-SHELL", "MYSQL_PWD=library1234 mysql -h127.0.0.1 -ulibrary -N -e 'SELECT 1 FROM library_db.loan LIMIT 1' > /dev/null"]
+      interval: 3s
+      timeout: 5s
+      retries: 100
+
+  web:
+    build: .
+    hostname: library-web
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      APP_HOST: 0.0.0.0             # 컨테이너 밖(브라우저)에서 접속. 0.0.0.0 이면 run.py 가 debug 를 끈다
+      APP_PORT: "5000"
+      NL_CERT_KEY: ${NL_CERT_KEY:-} # 국립중앙도서관 ISBN 조회 (없으면 버튼만 비활성화)
+    ports:
+      - "127.0.0.1:${APP_PORT:-5000}:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:

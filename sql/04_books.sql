@@ -2,6 +2,7 @@
 -- 도서 데이터 (scripts/build_seed.py 가 data/books.csv 에서 생성 — 직접 수정하지 말 것)
 -- 실제 도서 100종. 서지정보 출처는 data/books.csv 의 source 열 참고
 -- =====================================================================
+SET NAMES utf8mb4;   -- 클라이언트 문자셋 고정 : 어떤 mysql 클라이언트로 실행해도 한글이 깨지지 않게
 USE library_db;
 
 INSERT INTO publisher (publisher_id, publisher_name) VALUES

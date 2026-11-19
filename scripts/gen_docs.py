@@ -479,11 +479,11 @@ def main():
     for p in problems:
         print("[검사]", p)
     DOCS.mkdir(exist_ok=True)
-    (DOCS / "11_테이블_기술서.md").write_text(gen_table_spec(tables, columns, constraints, indexes), encoding="utf-8")
-    (DOCS / "10_도메인_정의서.md").write_text(gen_domains(columns), encoding="utf-8")
-    (DOCS / "09_용어_사전.md").write_text(gen_terms(columns), encoding="utf-8")
+    (DOCS / "11_테이블_기술서.md").write_text(gen_table_spec(tables, columns, constraints, indexes), encoding="utf-8", newline="\n")
+    (DOCS / "10_도메인_정의서.md").write_text(gen_domains(columns), encoding="utf-8", newline="\n")
+    (DOCS / "09_용어_사전.md").write_text(gen_terms(columns), encoding="utf-8", newline="\n")
     (DOCS / "_generated_physical_lists.md").write_text(
-        gen_physical_lists(constraints, indexes, routines, views, triggers, events), encoding="utf-8")
+        gen_physical_lists(constraints, indexes, routines, views, triggers, events), encoding="utf-8", newline="\n")
     print(f"생성 완료: docs/09, 10, 11, _generated_physical_lists.md  (검사 경고 {len(problems)}건)")
     sys.exit(1 if problems else 0)
 

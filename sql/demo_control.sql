@@ -8,6 +8,7 @@
 --   복구 : 각 절의 '되돌리기' 또는 전체 초기화  ssh delboy@100.77.2.39 '~/library-system/deploy/db-server/init.sh'
 --   ※ 앱 계정(library)의 권한 검증은 sql/demo_app_account.sql
 -- =====================================================================
+SET NAMES utf8mb4;   -- 클라이언트 문자셋 고정 : 어떤 mysql 클라이언트로 실행해도 한글이 깨지지 않게
 USE library_db;
 
 

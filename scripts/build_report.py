@@ -44,7 +44,7 @@ def main():
         "",
         *toc,
     ])
-    OUT.write_text(cover + "\n\n---\n\n" + "\n\n---\n\n".join(parts) + "\n", encoding="utf-8")
+    OUT.write_text(cover + "\n\n---\n\n" + "\n\n---\n\n".join(parts) + "\n", encoding="utf-8", newline="\n")
     print(f"{OUT.name} : {len(parts)}개 문서, {OUT.stat().st_size // 1024} KB")
 
 

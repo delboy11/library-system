@@ -81,6 +81,7 @@ def build_books_sql(books):
            "-- 도서 데이터 (scripts/build_seed.py 가 data/books.csv 에서 생성 — 직접 수정하지 말 것)",
            f"-- 실제 도서 {len(books)}종. 서지정보 출처는 data/books.csv 의 source 열 참고",
            "-- =====================================================================",
+           "SET NAMES utf8mb4;   -- 클라이언트 문자셋 고정 : 어떤 mysql 클라이언트로 실행해도 한글이 깨지지 않게",
            "USE library_db;", ""]
     for b in books:
         publishers.setdefault(b["publisher"], len(publishers) + 1)
@@ -113,7 +114,7 @@ def build_books_sql(books):
             copy_book.append(i)
     out.append("INSERT INTO book_copy (copy_id, reg_no, isbn, call_no, location, acquired_date) VALUES")
     out.append(",\n".join(copy_rows) + ";\n")
-    BOOKS_SQL.write_text("\n".join(out), encoding="utf-8")
+    BOOKS_SQL.write_text("\n".join(out), encoding="utf-8", newline="\n")
     return copy_book
 
 
@@ -281,6 +282,7 @@ def build_loans_sql(p):
 --   · 연체 반납이면 fn_overdue_days(휴관일 제외)로 연체료 생성
 -- 대출 {len(rows)}건 (현재 대출 중 {sum(1 for r in rows if r[4] is None)}건)
 -- =====================================================================
+SET NAMES utf8mb4;   -- 클라이언트 문자셋 고정 : 어떤 mysql 클라이언트로 실행해도 한글이 깨지지 않게
 USE library_db;
 
 CREATE TEMPORARY TABLE tmp_loan (
@@ -383,7 +385,7 @@ INSERT INTO suspension (member_id, reason, start_date, end_date, memo, staff_id,
   (10005, '규정위반', CURDATE() - INTERVAL 40 DAY, CURDATE() - INTERVAL 20 DAY, '열람실 좌석 무단 점유', 2, CURDATE() - INTERVAL 30 DAY, 1),
   (10013, '장기연체', CURDATE() - INTERVAL 80 DAY, CURDATE() - INTERVAL 66 DAY, '30일 이상 장기 연체 후 반납', 1, NULL, NULL);
 """
-    LOANS_SQL.write_text(sql, encoding="utf-8")
+    LOANS_SQL.write_text(sql, encoding="utf-8", newline="\n")
 
 
 def main():
