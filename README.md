@@ -80,7 +80,7 @@ cd library-system
 docker compose up -d --build
 ```
 
-30초 정도 뒤 (처음에는 이미지 내려받는 시간이 더 든다) http://127.0.0.1:5000 사서 `admin` / `admin1234`, http://127.0.0.1:5000/my 회원 `20231234` / `member1234`.
+40초 정도 뒤 (처음에는 이미지 내려받는 시간이 더 든다) http://127.0.0.1:5000 사서 `admin` / `admin1234`, http://127.0.0.1:5000/my 회원 `20231234` / `member1234`.
 
 - `db` 컨테이너: MySQL 8.4. 처음 뜰 때 `sql/01 ~ 05` 를 순서대로 실행해 `library_db` 를 만든다. 시간대는 `+09:00` 으로 고정.
 - `web` 컨테이너: Flask 웹 서버. 앱 계정 `library` 로 `db` 에 접속한다. 사서 화면 맨 아래에 `웹 서버 library-web → DB 서버 db:3306 · 호스트 library-db` 가 표시된다.
@@ -88,7 +88,7 @@ docker compose up -d --build
 
 | 하고 싶은 것 | 명령 |
 |---|---|
-| 상태 확인 | `docker compose ps` (db 가 `healthy`, web 이 `Up` 이면 준비 완료) |
+| 상태 확인 | `docker compose ps` (db · web 둘 다 `healthy` 면 준비 완료. `docker compose up -d --wait` 는 여기까지 기다린다) |
 | 웹 서버 로그 | `docker compose logs -f web` |
 | 끄기 / 다시 켜기 (데이터 유지) | `docker compose stop` / `docker compose start` |
 | **데이터 다시 초기화** | `docker compose down -v` 후 `docker compose up -d` |

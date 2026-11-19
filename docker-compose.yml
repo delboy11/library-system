@@ -46,6 +46,12 @@ services:
       NL_CERT_KEY: ${NL_CERT_KEY:-} # 국립중앙도서관 ISBN 조회 (없으면 버튼만 비활성화)
     ports:
       - "127.0.0.1:${APP_PORT:-5000}:5000"
+    healthcheck:
+      # 로그인 화면이 열리면 준비 완료 (docker compose ps 의 healthy, up --wait 가 이것을 기다린다)
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/login', timeout=3)"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
     depends_on:
       db:
         condition: service_healthy
