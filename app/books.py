@@ -161,6 +161,21 @@ def list_books():
     return render_template("books/list.html", books=books, q=q, category=category, categories=categories())
 
 
+def also_borrowed(isbn):
+    """이 책을 빌린 회원들이 함께 대출한 책 TOP 5 (뷰 v_also_borrowed : 2명 이상이 함께 빌린 책만)."""
+    return query(
+        """
+        SELECT b.isbn, b.title, b.authors, b.available_copies, v.borrower_count
+          FROM v_also_borrowed v
+          JOIN v_book_summary b ON b.isbn = v.other_isbn
+         WHERE v.isbn = %s
+         ORDER BY v.borrower_count DESC, b.title
+         LIMIT 5
+        """,
+        (isbn,),
+    )
+
+
 @bp.route("/<isbn>")
 def detail(isbn):
     book = query_one("SELECT * FROM v_book_summary WHERE isbn = %s", (isbn,))
@@ -183,7 +198,7 @@ def detail(isbn):
         (isbn,),
     )["n"]
     return render_template("books/detail.html", book=book, copies=copies, loan_count=loan_count,
-                           manual_statuses=COPY_STATUSES_MANUAL)
+                           also_borrowed=also_borrowed(isbn), manual_statuses=COPY_STATUSES_MANUAL)
 
 
 @bp.route("/new", methods=["GET", "POST"])

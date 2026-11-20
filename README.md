@@ -26,6 +26,7 @@
 ## 화면
 
 - **사서용** `http://127.0.0.1:5000` — 대시보드, 대출, 반납, 대출현황, 도서, 회원, 연체·정지, 연체료, 휴관일, 통계
+- **함께 대출한 책** — 도서 상세 화면(사서·회원 포털)에 "이 책을 빌린 회원들이 함께 대출한 책" TOP 5. 뷰 `v_also_borrowed` 가 대출 테이블을 자기 자신과 조인해 계산하고, 2명 이상이 함께 빌린 책만 보여 준다
 - **회원 포털** `http://127.0.0.1:5000/my` — 도서 검색, 내 대출 현황, 연장 신청, 연체료·정지 조회, 비밀번호 변경
   (`APP_HOST=0.0.0.0` 으로 실행하면 폰에서 `http://<노트북 IP>:5000/my` 로 접속 가능)
 
@@ -35,7 +36,7 @@
 library-system/
 ├── sql/
 │   ├── 01_schema.sql        # 테이블 14개, PK/FK/UNIQUE/CHECK, 인덱스, 앱 전용 계정
-│   ├── 02_programs.sql      # 함수 3, 뷰 3, 트리거 2, 프로시저 8
+│   ├── 02_programs.sql      # 함수 3, 뷰 4, 트리거 2, 프로시저 8
 │   ├── 03_base_data.sql     # 회원구분(대출 정책), 사서, 분류, 휴관일, 회원
 │   ├── 04_books.sql         # 도서·복본 (build_seed.py 생성)
 │   ├── 05_sample_loans.sql  # 대출·연장·연체료·정지 이력 (build_seed.py 생성)
@@ -55,7 +56,7 @@ library-system/
 ├── docker-compose.yml       # 한 PC 재현: db(MySQL 8.4) + web(Flask) 컨테이너
 ├── Dockerfile               # web 컨테이너 이미지
 ├── deploy/db-server/        # DB 서버 PC 용: start.sh(Docker MySQL) · init.sh(초기화) · systemd 단위
-├── tests/test_scenarios.py  # 업무 규칙 통합 테스트 28개
+├── tests/test_scenarios.py  # 업무 규칙 통합 테스트 29개
 └── docs/                    # 보고서 (00 설계 결정 ~ 13 시연 시나리오)
 ```
 
