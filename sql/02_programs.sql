@@ -133,6 +133,22 @@ SELECT x.member_id, x.member_no, x.name, x.type_code, t.type_name, x.department,
   JOIN member_type t ON t.type_code = x.type_code;
 
 
+-- 함께 대출한 책 : "이 책을 빌린 회원들이 함께 대출한 책" (도서 상세 화면의 추천 목록)
+--   대출(loan)을 회원 기준으로 자기 자신과 조인해, 같은 회원이 빌린 서로 다른 두 도서의 쌍을 만든다
+--   borrower_count = 두 책을 모두 빌린 회원 수. 2명 이상인 쌍만 남겨 한 사람의 대출 기록이 드러나지 않게 한다
+CREATE OR REPLACE VIEW v_also_borrowed AS
+SELECT bc1.isbn AS isbn,                              -- 기준 도서
+       bc2.isbn AS other_isbn,                        -- 함께 대출된 도서
+       COUNT(DISTINCT l1.member_id) AS borrower_count -- 두 책을 모두 빌린 회원 수
+  FROM loan l1
+  JOIN book_copy bc1 ON bc1.copy_id  = l1.copy_id
+  JOIN loan l2       ON l2.member_id = l1.member_id
+  JOIN book_copy bc2 ON bc2.copy_id  = l2.copy_id
+ WHERE bc1.isbn <> bc2.isbn
+ GROUP BY bc1.isbn, bc2.isbn
+HAVING COUNT(DISTINCT l1.member_id) >= 2;
+
+
 DELIMITER $$
 
 -- =====================================================================

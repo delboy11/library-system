@@ -35,4 +35,23 @@
     </tbody>
   </table></div>
 </section>
+
+<section class="section">
+  <div class="section__head"><h2>이 책을 빌린 회원들이 함께 대출한 책</h2></div>
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>서명</th><th>저자</th><th>함께 빌린 회원</th><th>대출가능</th></tr></thead>
+    <tbody>
+    {% for r in also_borrowed %}
+      <tr>
+        <td class="stack__title"><a href="{{ url_for('portal.book_detail', isbn=r.isbn) }}">{{ r.title }}</a></td>
+        <td data-label="저자">{{ r.authors }}</td>
+        <td data-label="함께 빌린 회원">{{ r.borrower_count }}명</td>
+        <td data-label="대출가능">{{ r.available_copies }}권</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4" class="empty">아직 함께 대출된 책이 없습니다. (2명 이상이 함께 빌린 책만 보여 줍니다)</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
 {% endblock %}

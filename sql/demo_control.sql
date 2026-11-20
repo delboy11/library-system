@@ -140,7 +140,31 @@ UPDATE staff SET role = '사서' WHERE login_id = 'lib01';
 
 
 -- ---------------------------------------------------------------------
--- 5. 끝난 뒤 확인 : 1장과 같은 결과면 원래 상태
+-- 5. 함께 대출한 책 (뷰 v_also_borrowed) : 도서 상세 화면의 추천 목록이 나오는 곳
+-- ---------------------------------------------------------------------
+
+-- 5-1. '이기적 유전자'를 빌린 회원들이 함께 대출한 책 TOP 5 (웹 도서 상세 화면과 같은 결과)
+SELECT b.title, v.borrower_count
+  FROM v_also_borrowed v
+  JOIN book b ON b.isbn = v.other_isbn
+ WHERE v.isbn = (SELECT isbn FROM book WHERE title = '이기적 유전자')
+ ORDER BY v.borrower_count DESC, b.title
+ LIMIT 5;
+
+-- 5-2. 뷰가 하는 일을 풀어서 보기 : 대출(loan)을 회원 기준으로 자기 자신과 조인 → 도서 쌍별 회원 수
+--      HAVING 이 없으면 1명만 빌린 쌍도 나온다. 뷰는 2명 이상인 쌍만 남긴다 (개인 대출 기록 보호)
+SELECT COUNT(*) AS all_pairs, SUM(borrower_count >= 2) AS shown_pairs
+  FROM (SELECT bc1.isbn, bc2.isbn AS other_isbn, COUNT(DISTINCT l1.member_id) AS borrower_count
+          FROM loan l1
+          JOIN book_copy bc1 ON bc1.copy_id  = l1.copy_id
+          JOIN loan l2       ON l2.member_id = l1.member_id
+          JOIN book_copy bc2 ON bc2.copy_id  = l2.copy_id
+         WHERE bc1.isbn <> bc2.isbn
+         GROUP BY bc1.isbn, bc2.isbn) x;
+
+
+-- ---------------------------------------------------------------------
+-- 6. 끝난 뒤 확인 : 1장과 같은 결과면 원래 상태
 -- ---------------------------------------------------------------------
 SELECT member_no, name, active_loans, max_loan_count, overdue_loans, unpaid_fine, suspend_until, loan_state
   FROM v_member_status

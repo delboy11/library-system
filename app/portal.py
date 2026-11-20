@@ -4,6 +4,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, s
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .auth import safe_next
+from .books import also_borrowed
 from .db import call_proc, error_message, execute, query, query_one
 
 bp = Blueprint("portal", __name__, url_prefix="/my")
@@ -107,7 +108,8 @@ def book_detail(isbn):
             ORDER BY bc.reg_no""",
         (isbn,),
     )
-    return render_template("portal/book_detail.html", book=book, copies=copies)
+    return render_template("portal/book_detail.html", book=book, copies=copies,
+                           also_borrowed=also_borrowed(isbn))
 
 
 @bp.route("/password", methods=["GET", "POST"])

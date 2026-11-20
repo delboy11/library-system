@@ -320,6 +320,31 @@ class LibraryScenarioTest(unittest.TestCase):
         self.assertNotIn("-까지 대출이 정지", page)
         self.assertEqual(self.staff().get("/closed-days/?year=abc").status_code, 200)
 
+    def test_65_also_borrowed(self):
+        # 뷰는 2명 이상이 함께 빌린 도서 쌍만 돌려준다 (한 사람의 대출 기록이 드러나지 않게)
+        self.assertEqual(self.one("SELECT COUNT(*) AS n FROM v_also_borrowed WHERE borrower_count < 2")["n"], 0)
+        self.assertEqual(self.one("SELECT COUNT(*) AS n FROM v_also_borrowed WHERE isbn = other_isbn")["n"], 0)
+        top = self.one("SELECT isbn, other_isbn, borrower_count FROM v_also_borrowed "
+                       "ORDER BY borrower_count DESC, isbn, other_isbn LIMIT 1")
+        # 뷰의 회원 수가 대출 테이블에서 직접 센 값과 같다
+        direct = self.one(
+            """SELECT COUNT(*) AS n FROM (
+                 SELECT l.member_id FROM loan l JOIN book_copy bc ON bc.copy_id = l.copy_id
+                  WHERE bc.isbn IN (%s, %s) GROUP BY l.member_id HAVING COUNT(DISTINCT bc.isbn) = 2) x""",
+            (top["isbn"], top["other_isbn"]))["n"]
+        self.assertEqual(top["borrower_count"], direct)
+        other_title = self.one("SELECT title FROM book WHERE isbn = %s", (top["other_isbn"],))["title"]
+        for client, url in ((self.staff(), f"/books/{top['isbn']}"), (self.member("20231234"), f"/my/books/{top['isbn']}")):
+            page = unescape(client.get(url).data.decode())
+            self.assertIn("함께 대출한 책", page)
+            self.assertIn(other_title, page)
+        # 대출 이력이 없는 새 도서는 추천이 비어 있다
+        self.sql("INSERT INTO book (isbn, title, publisher_id, category_code) VALUES ('9791100000017', '추천 없는 책', 1, '000')")
+        try:
+            self.assertIn("아직 함께 대출된 책이 없습니다", self.staff().get("/books/9791100000017").data.decode())
+        finally:
+            self.sql("DELETE FROM book WHERE isbn = '9791100000017'")
+
     def test_72_csrf_and_open_redirect(self):
         c = self.staff()
         self.assertEqual(c.post("/loans/return", data={"reg_no": "EM000001"},
