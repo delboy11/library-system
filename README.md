@@ -57,6 +57,7 @@ library-system/
 ├── Dockerfile               # web 컨테이너 이미지
 ├── deploy/db-server/        # DB 서버 PC 용: start.sh(Docker MySQL) · init.sh(초기화) · systemd 단위
 ├── tests/test_scenarios.py  # 업무 규칙 통합 테스트 29개
+├── dump/library_db_dump.sql # DB 구축 dump (보고서 별첨 2). 복원: mysql -u root -p --default-character-set=utf8mb4 < dump/library_db_dump.sql
 └── docs/                    # 보고서 (00 설계 결정 ~ 13 시연 시나리오)
 ```
 
